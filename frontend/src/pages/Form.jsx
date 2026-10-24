@@ -71,7 +71,7 @@ export default function Form() {
 
     try {
       // Linked to your live Render backend
-      const baseURL = import.meta.env.VITE_API_URL || 'https://pathforge-ai-api.onrender.com';
+      const baseURL = import.meta.env.VITE_API_URL || 'https://pathforge-ai-yura.onrender.com';
       const res = await axios.post(`${baseURL}/api/generate-roadmap`, form)
       sessionStorage.setItem('roadmap', JSON.stringify(res.data.data))
       sessionStorage.setItem('userName', form.name)
