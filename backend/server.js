@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
-const { GoogleGenAI } = require("@google/genai");
+const Groq = require("groq-sdk");
 dotenv.config();
 
 const app = express();
@@ -12,7 +12,8 @@ app.use(cors());
 app.use(express.json());
 
 // Initialize Gemini API client
-const ai = new GoogleGenAI({apiKey: process.env.GEMINI_API_KEY
+const ai = new Groq({
+  apiKey: process.env.GROQ_API_KEY
 });
 // Health check
 app.get('/', (req, res) => {
@@ -171,18 +172,28 @@ REMEMBER: Generate 3–6 roadmap phases. Total duration must be realistic for th
 
   try {
    
-const response = await ai.models.generateContent({
-  model: "gemini-3.8-flash",
-  contents: prompt,
-  config: {
-    systemInstruction: "You are an expert career counselor and roadmap planner AI. Return only valid JSON matching the requested structure.",
-    responseMimeType: "application/json",
-    temperature: 0.7
+   const response = await ai.chat.completions.create({
+  model: "openai/gpt-oss-20b",
+  messages: [
+    {
+      role: "system",
+      content: "You are an expert career counselor. Generate realistic, personalized career roadmaps. Return only valid JSON."
+    },
+    {
+      role: "user",
+      content: prompt
+    }
+  ],
+  temperature: 0.3,
+  max_completion_tokens: 8000,
+  response_format: {
+    type: "json_object"
   }
 });
 
-const text = response.text || "";
+console.log("Groq finish reason:", response.choices[0]?.finish_reason);
 
+const text = response.choices[0]?.message?.content || "";
     let parsedData;
     try {
       let cleanedText = text;
@@ -200,12 +211,17 @@ const text = response.text || "";
 
     return res.json({ success: true, data: parsedData });
   } catch (err) {
-  console.error('Gemini API Error:', err);
+     console.error("Groq API Error:", {
+  status: err.status,
+  message: err.message,
+  code: err.code});
+   
   return res.status(500).json({
     error: 'AI generation failed.',
     details: err.message
   });
-   }
+
+  }
 });
 
 app.listen(PORT, () => {
